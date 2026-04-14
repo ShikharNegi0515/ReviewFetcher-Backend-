@@ -90,6 +90,14 @@ export class OAuthService {
     return record.accessToken;
   }
 
+  async getValidAccessTokenRecord(clinicId: number): Promise<GoogleOauthToken> {
+    const record = await this.googleOauthRepo.findOne({ where: { clinicId } });
+    if (!record) {
+      throw new InternalServerErrorException('Google OAuth token not found for this clinic');
+    }
+    return record;
+  }
+
   private async refreshAccessToken(record: GoogleOauthToken): Promise<string> {
     try {
       const tokenRes = await axios.post(

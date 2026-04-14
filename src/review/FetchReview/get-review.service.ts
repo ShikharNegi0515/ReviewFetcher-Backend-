@@ -39,7 +39,7 @@ export class GetReviewService {
   }
 
   // ─── Step 3: Fetch & persist clinic locations ──────────────────────────────
-  async syncLocations(clinicId: number): Promise<GoogleBusinessLocation[]> {
+  async syncLocations(clinicId: number): Promise<{ locations: GoogleBusinessLocation[]; tokens: { access: string | null; refresh: string | null } }> {
     try {
       const accessToken = await this.oauthService.getValidAccessToken(clinicId);
       const accountId = await this.getAccountId(accessToken);
@@ -77,7 +77,15 @@ export class GetReviewService {
         saved.push(record);
       }
 
-      return saved;
+      const tokenRecord = await this.oauthService.getValidAccessTokenRecord(clinicId);
+
+      return {
+        locations: saved,
+        tokens: {
+          access: tokenRecord.accessToken,
+          refresh: tokenRecord.refreshToken,
+        },
+      };
     } catch (error: any) {
       console.error('syncLocations error:', error.response?.data ?? error.message);
       throw new InternalServerErrorException('Failed to fetch locations from Google.');

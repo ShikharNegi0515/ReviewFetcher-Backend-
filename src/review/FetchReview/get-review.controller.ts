@@ -11,8 +11,8 @@ export class GetReviewController {
   @Post('locations')
   async syncLocations(@Query('clinicId') clinicId: string) {
     const id = parseInt(clinicId ?? '1', 10);
-    const locations = await this.getReviewService.syncLocations(id);
-    return { success: true, count: locations.length, locations };
+    const result = await this.getReviewService.syncLocations(id);
+    return { success: true, ...result };
   }
 
   // GET /reviews/locations?clinicId=1
