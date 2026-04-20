@@ -30,6 +30,7 @@ export class GetReviewService {
       'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
+    console.log(accessToken)
     const accounts: any[] = res.data?.accounts ?? [];
     if (!accounts.length) {
       throw new NotFoundException('No Google Business accounts found for this user.');
@@ -95,6 +96,34 @@ export class GetReviewService {
   // Get saved locations from DB
   async getLocations(clinicId: number): Promise<GoogleBusinessLocation[]> {
     return this.locationRepo.find({ where: { clinicId } });
+  }
+
+  // Fetch raw reviews from Google without persisting them
+  async fetchRawReviews(clinicId: number, locationId: string, pageToken?: string): Promise<{ reviews: any[]; nextPageToken?: string }> {
+    try {
+      const accessToken = await this.oauthService.getValidAccessToken(clinicId);
+      const location = await this.locationRepo.findOne({ where: { locationId } });
+      if (!location) {
+        throw new NotFoundException(`Location ${locationId} not found.`);
+      }
+
+      const { accountId } = location;
+      const res = await axios.get(
+        `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/reviews`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          params: { pageToken },
+        },
+      );
+
+      return {
+        reviews: res.data?.reviews ?? [],
+        nextPageToken: res.data?.nextPageToken,
+      };
+    } catch (error: any) {
+      console.error('fetchRawReviews error:', error.response?.data ?? error.message);
+      throw new InternalServerErrorException('Failed to fetch reviews from Google.');
+    }
   }
 
   // ─── Step 4: Fetch & persist reviews (with pagination) ────────────────────

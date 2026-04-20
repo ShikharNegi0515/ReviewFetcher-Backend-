@@ -9,9 +9,10 @@ import { GoogleReview } from '../Entity/google-review.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([GoogleBusinessLocation, GoogleReview]),
-    OAuthModule,  // gives us OAuthService via its exports
+    OAuthModule,  
   ],
   controllers: [GetReviewController],
   providers: [GetReviewService],
+  exports: [GetReviewService],
 })
 export class GetReviewModule {}
