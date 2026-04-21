@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { GoogleOauthToken } from './review/Entity/google-oauth-token.entity';
 import { GoogleBusinessLocation } from './review/Entity/google-business-location.entity';
 import { GoogleReview } from './review/Entity/google-review.entity';
+import { PubSubNewFercherModule } from './review/PubSub/newReviewfetcher.module';
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { GoogleReview } from './review/Entity/google-review.entity';
       inject: [ConfigService],
     }),
     ReviewModule,
-    GetReviewModule
+    GetReviewModule,
+    PubSubNewFercherModule
   ],
   controllers: [],
   providers: [],

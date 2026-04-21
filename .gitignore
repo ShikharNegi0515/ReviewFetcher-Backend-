@@ -37,6 +37,8 @@ lerna-debug.log*
 
 # dotenv environment variable files
 .env
+# GCP Credentials
+credentials.json
 .env.development.local
 .env.test.local
 .env.production.local

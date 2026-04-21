@@ -202,4 +202,42 @@ export class GetReviewService {
       },
     };
   }
+
+  // Fetch and persist a single review by its full name (hint from Pub/Sub)
+  async syncSingleReview(reviewName: string): Promise<GoogleReview> {
+    try {
+      // reviewName = "accounts/{accountId}/locations/{locationId}/reviews/{reviewId}"
+      const parts = reviewName.split('/');
+      const locationId = parts[3];
+      const reviewId = parts[5];
+
+      // Find the clinicId by searching for the locationId in our DB
+      const location = await this.locationRepo.findOne({ where: { locationId } });
+      if (!location) {
+        throw new NotFoundException(`Location ${locationId} not found in DB for review ${reviewId}`);
+      }
+
+      const accessToken = await this.oauthService.getValidAccessToken(location.clinicId);
+
+      const res = await axios.get(
+        `https://mybusiness.googleapis.com/v4/${reviewName}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+
+      const r = res.data;
+      let record = await this.reviewRepo.findOne({ where: { reviewId } });
+      if (!record) {
+        record = this.reviewRepo.create({ reviewId, locationId });
+      }
+      record.reviewerName = r.reviewer?.displayName ?? 'Anonymous';
+      record.starRating = r.starRating ?? null;
+      record.comment = r.comment ?? null;
+      record.reviewCreateTime = r.createTime ? new Date(r.createTime) : null;
+
+      return await this.reviewRepo.save(record);
+    } catch (error: any) {
+      console.error('syncSingleReview error:', error.response?.data ?? error.message);
+      throw new InternalServerErrorException('Failed to sync single review from Google.');
+    }
+  }
 }
