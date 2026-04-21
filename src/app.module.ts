@@ -4,6 +4,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ReviewModule } from './review/review.module';
 import { GetReviewModule } from './review/FetchReview/get-review.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { GoogleOauthToken } from './review/Entity/google-oauth-token.entity';
+import { GoogleBusinessLocation } from './review/Entity/google-business-location.entity';
+import { GoogleReview } from './review/Entity/google-review.entity';
 
 @Module({
   imports: [
@@ -20,8 +23,15 @@ import { ScheduleModule } from '@nestjs/schedule';
         username: configService.get<string>('DB_USERNAME') || 'postgres',
         password: configService.get<string>('DB_PASSWORD') || 'postgres',
         database: configService.get<string>('DB_DATABASE') || 'postgres',
-        autoLoadEntities: true, // Will automatically load entities
-        synchronize: true, // Only for development
+        entities: [GoogleOauthToken, GoogleBusinessLocation, GoogleReview],
+        autoLoadEntities: true,
+        synchronize: true,
+        ssl: true,
+        extra: {
+          ssl: {
+            rejectUnauthorized: false,
+          },
+        },
       }),
       inject: [ConfigService],
     }),
@@ -31,4 +41,4 @@ import { ScheduleModule } from '@nestjs/schedule';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }
