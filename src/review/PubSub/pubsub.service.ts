@@ -69,7 +69,15 @@ export class PubSubService implements OnModuleInit {
           message.ack();
         } catch (error: any) {
           console.error(`Error handling message from ${subscriptionName}:`, error.message);
-          message.nack(); // Retry later
+          
+          if (error.retryable) {
+            console.log(`Retrying message from ${subscriptionName}...`);
+            message.nack();
+          } else {
+            // Default to ACKing to prevent infinite loops of dead messages
+            console.log(`Acknowledging failed message from ${subscriptionName} to prevent loop.`);
+            message.ack();
+          }
         }
       });
 

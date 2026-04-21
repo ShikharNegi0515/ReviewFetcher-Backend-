@@ -15,12 +15,18 @@ export class ReviewSaverWorker implements OnModuleInit {
     this.pubSubService.listenToSubscription(
       this.subscriptionName,
       async (data) => {
-        console.log(`[ReviewSaverWorker] Processing event: ${data.type}`);
-        
-        if (data.type === 'REVIEW_UPDATED' && data.reviewName) {
-          console.log(`[ReviewSaverWorker] Syncing review: ${data.reviewName}`);
-          await this.getReviewService.syncSingleReview(data.reviewName);
-          console.log(`[ReviewSaverWorker] Successfully synced review.`);
+        try {
+          console.log(`[ReviewSaverWorker] Processing event: ${data.type}`);
+          
+          if (data.type === 'REVIEW_UPDATED' && data.reviewName) {
+            console.log(`[ReviewSaverWorker] Syncing review: ${data.reviewName}`);
+            await this.getReviewService.syncSingleReview(data.reviewName);
+            console.log(`[ReviewSaverWorker] Successfully synced review.`);
+          }
+        } catch (error: any) {
+          console.error(`[ReviewSaverWorker] Failed to process ${data.type} for ${data.reviewName || 'unknown'}:`, error.message);
+          // We re-throw so PubSubService can handle the ACK/NACK logic
+          throw error;
         }
       },
     );
