@@ -6,9 +6,10 @@ import { ReviewSaverWorker } from './review-saver.worker';
 import { NotificationWorker } from './notification.worker';
 import { GetReviewModule } from '../FetchReview/get-review.module';
 import { NewReviewfetcherService } from './newReviewfetcher.service';
+import { OAuthModule } from '../OAuth/OAuth.module';
 
 @Module({
-  imports: [ConfigModule, GetReviewModule],
+  imports: [ConfigModule, GetReviewModule, OAuthModule],
   controllers: [GoogleWebhookController],
   providers: [
     PubSubService,
