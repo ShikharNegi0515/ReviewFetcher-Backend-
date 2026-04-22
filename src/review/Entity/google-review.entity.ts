@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { GoogleBusinessLocation } from './google-business-location.entity';
 
 @Entity('google_reviews')

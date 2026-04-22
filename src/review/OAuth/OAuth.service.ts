@@ -30,13 +30,21 @@ export class OAuthService {
 
       const tokens = tokenRes.data;
       // Fallback clinicId if none was passed in state
-      const clinicId = clinicIdStr ? parseInt(clinicIdStr, 10) : 1; 
+      const clinicId = clinicIdStr ? parseInt(clinicIdStr, 10) : 1;
 
       await this.saveTokensToDB(tokens, clinicId);
-      return { success: true, message: 'Google Business connected successfully.' };
+      return {
+        success: true,
+        message: 'Google Business connected successfully.',
+      };
     } catch (error: any) {
-      console.error('Error fetching tokens:', error.response?.data || error.message);
-      throw new InternalServerErrorException('Failed to exchange code for tokens');
+      console.error(
+        'Error fetching tokens:',
+        error.response?.data || error.message,
+      );
+      throw new InternalServerErrorException(
+        'Failed to exchange code for tokens',
+      );
     }
   }
 
@@ -64,22 +72,29 @@ export class OAuthService {
       record.googleAccountId = userInfo.id;
       record.googleEmail = userInfo.email;
       record.accessToken = tokens.access_token;
-      record.refreshToken = tokens.refresh_token || record.refreshToken; 
+      record.refreshToken = tokens.refresh_token || record.refreshToken;
       record.scope = tokens.scope;
       record.tokenType = tokens.token_type;
       record.expiryDate = new Date(Date.now() + tokens.expires_in * 1000);
 
       await this.googleOauthRepo.save(record);
     } catch (error: any) {
-       console.error('Error saving tokens:', error.response?.data || error.message);
-       throw new InternalServerErrorException('Failed to save tokens to database');
+      console.error(
+        'Error saving tokens:',
+        error.response?.data || error.message,
+      );
+      throw new InternalServerErrorException(
+        'Failed to save tokens to database',
+      );
     }
   }
 
   async getValidAccessToken(clinicId: number): Promise<string> {
     const record = await this.googleOauthRepo.findOne({ where: { clinicId } });
     if (!record) {
-      throw new InternalServerErrorException('Google OAuth token not found for this clinic');
+      throw new InternalServerErrorException(
+        'Google OAuth token not found for this clinic',
+      );
     }
 
     const bufferInMs = 5 * 60 * 1000; // 5 minutes buffer
@@ -93,7 +108,9 @@ export class OAuthService {
   async getValidAccessTokenRecord(clinicId: number): Promise<GoogleOauthToken> {
     const record = await this.googleOauthRepo.findOne({ where: { clinicId } });
     if (!record) {
-      throw new InternalServerErrorException('Google OAuth token not found for this clinic');
+      throw new InternalServerErrorException(
+        'Google OAuth token not found for this clinic',
+      );
     }
     return record;
   }
@@ -114,10 +131,10 @@ export class OAuthService {
       );
 
       const tokens = tokenRes.data;
-      
+
       record.accessToken = tokens.access_token;
       if (tokens.refresh_token) {
-          record.refreshToken = tokens.refresh_token;
+        record.refreshToken = tokens.refresh_token;
       }
       record.expiryDate = new Date(Date.now() + tokens.expires_in * 1000);
 
@@ -125,7 +142,10 @@ export class OAuthService {
 
       return record.accessToken;
     } catch (error: any) {
-      console.error('Error refreshing token:', error.response?.data || error.message);
+      console.error(
+        'Error refreshing token:',
+        error.response?.data || error.message,
+      );
       throw new InternalServerErrorException('Failed to refresh access token');
     }
   }

@@ -26,7 +26,7 @@ export class NotificationWorker implements OnModuleInit {
       this.subscriptionName,
       async (data) => {
         console.log(`[NotificationWorker] Processing event: ${data.type}`);
-        
+
         if (data.type === 'REVIEW_UPDATED') {
           await this.sendNotificationEmail(data);
         }
@@ -47,7 +47,7 @@ export class NotificationWorker implements OnModuleInit {
                <li><b>Review Name:</b> ${data.reviewName}</li>
                <li><b>Account:</b> ${data.accountName}</li>
              </ul>
-             <p>Our system is currently fetching and saving the full content.</p>`
+             <p>Our system is currently fetching and saving the full content.</p>`,
     };
 
     try {

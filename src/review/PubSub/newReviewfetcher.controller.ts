@@ -1,36 +1,53 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Query } from '@nestjs/common';
 import { PubSubService } from './pubsub.service';
+import { NewReviewfetcherService } from './newReviewfetcher.service';
 
 @Controller('reviews')
 export class GoogleWebhookController {
-    constructor(private readonly pubSubService: PubSubService) {}
+  constructor(
+    private readonly pubSubService: PubSubService,
+    private readonly newReviewfetcherService: NewReviewfetcherService,
+  ) {}
 
-    @Post('webhook/google-review')
-    async handle(@Body() body: any) {
-        console.log('GOOGLE EVENT RECEIVED');
-        
-        try {
-            const encodedData = body.message?.data;
-            if (!encodedData) {
-                console.warn('Received PubSub message with no data');
-                return { success: false };
-            }
+  @Post('webhook/google-review')
+  async handle(@Body() body: any) {
+    console.log('GOOGLE EVENT RECEIVED');
 
-            const decodedString = Buffer.from(encodedData, 'base64').toString();
-            const data = JSON.parse(decodedString);
-            
-            console.log('Decoded Data => ', JSON.stringify(data));
+    try {
+      const encodedData = body.message?.data;
+      if (!encodedData) {
+        console.warn('Received PubSub message with no data');
+        return { success: false };
+      }
 
-            // Publish internal event for fan-out
-            await this.pubSubService.publishInternalEvent({
-                type: 'REVIEW_UPDATED',
-                ...data
-            });
+      const decodedString = Buffer.from(encodedData, 'base64').toString();
+      const data = JSON.parse(decodedString);
 
-            return { success: true };
-        } catch (error: any) {
-            console.error('Error in webhook handler:', error.message);
-            return { success: false };
-        }
+      console.log('Decoded Data => ', JSON.stringify(data));
+
+      // Publish internal event for fan-out
+      await this.pubSubService.publishInternalEvent({
+        type: 'REVIEW_UPDATED',
+        ...data,
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error in webhook handler:', error.message);
+      return { success: false };
     }
+  }
+
+  @Post('setup-notifications')
+  async setupNotifications(@Query('clinicId') clinicId: string) {
+    if (!clinicId) {
+      return {
+        success: false,
+        message: 'clinicId query parameter is required',
+      };
+    }
+    return await this.newReviewfetcherService.setupNotifications(
+      parseInt(clinicId, 10),
+    );
+  }
 }

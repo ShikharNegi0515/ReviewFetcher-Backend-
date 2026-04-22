@@ -10,4 +10,4 @@ import { Module } from '@nestjs/common';
     TypeOrmModule.forFeature([GoogleBusinessLocation, GoogleReview]),
   ],
 })
-export class ReviewModule { }
+export class ReviewModule {}

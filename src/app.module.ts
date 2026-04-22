@@ -38,9 +38,9 @@ import { PubSubNewFercherModule } from './review/PubSub/newReviewfetcher.module'
     }),
     ReviewModule,
     GetReviewModule,
-    PubSubNewFercherModule
+    PubSubNewFercherModule,
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}

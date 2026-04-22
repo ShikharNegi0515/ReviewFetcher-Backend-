@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
@@ -22,7 +26,7 @@ export class GetReviewService {
     private readonly locationRepo: Repository<GoogleBusinessLocation>,
     @InjectRepository(GoogleReview)
     private readonly reviewRepo: Repository<GoogleReview>,
-  ) { }
+  ) {}
 
   // ─── Step 2: Get Business Account ID from Google ──────────────────────────
   async getAccountId(accessToken: string): Promise<string> {
@@ -30,17 +34,22 @@ export class GetReviewService {
       'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
-    console.log(accessToken)
+    console.log(accessToken);
     const accounts: any[] = res.data?.accounts ?? [];
     if (!accounts.length) {
-      throw new NotFoundException('No Google Business accounts found for this user.');
+      throw new NotFoundException(
+        'No Google Business accounts found for this user.',
+      );
     }
     // name = "accounts/123456789"  →  accountId = "123456789"
     return accounts[0].name.split('/')[1];
   }
 
   // ─── Step 3: Fetch & persist clinic locations ──────────────────────────────
-  async syncLocations(clinicId: number): Promise<{ locations: GoogleBusinessLocation[]; tokens: { access: string | null; refresh: string | null } }> {
+  async syncLocations(clinicId: number): Promise<{
+    locations: GoogleBusinessLocation[];
+    tokens: { access: string | null; refresh: string | null };
+  }> {
     try {
       const accessToken = await this.oauthService.getValidAccessToken(clinicId);
       const accountId = await this.getAccountId(accessToken);
@@ -61,13 +70,18 @@ export class GetReviewService {
       for (const loc of locations) {
         // name = "accounts/123/locations/987"
         const locationId = loc.name?.split('/').pop();
-        const placeId = loc.locationKey?.placeId ?? loc.metadata?.placeId ?? null;
+        const placeId =
+          loc.locationKey?.placeId ?? loc.metadata?.placeId ?? null;
         const mapsUri = loc.metadata?.mapsUri ?? null;
         const title = loc.title ?? null;
 
         let record = await this.locationRepo.findOne({ where: { locationId } });
         if (!record) {
-          record = this.locationRepo.create({ clinicId, accountId, locationId });
+          record = this.locationRepo.create({
+            clinicId,
+            accountId,
+            locationId,
+          });
         }
         record.accountId = accountId;
         record.placeId = placeId;
@@ -78,7 +92,8 @@ export class GetReviewService {
         saved.push(record);
       }
 
-      const tokenRecord = await this.oauthService.getValidAccessTokenRecord(clinicId);
+      const tokenRecord =
+        await this.oauthService.getValidAccessTokenRecord(clinicId);
 
       return {
         locations: saved,
@@ -88,8 +103,13 @@ export class GetReviewService {
         },
       };
     } catch (error: any) {
-      console.error('syncLocations error:', error.response?.data ?? error.message);
-      throw new InternalServerErrorException('Failed to fetch locations from Google.');
+      console.error(
+        'syncLocations error:',
+        error.response?.data ?? error.message,
+      );
+      throw new InternalServerErrorException(
+        'Failed to fetch locations from Google.',
+      );
     }
   }
 
@@ -99,10 +119,16 @@ export class GetReviewService {
   }
 
   // Fetch raw reviews from Google without persisting them
-  async fetchRawReviews(clinicId: number, locationId: string, pageToken?: string): Promise<{ reviews: any[]; nextPageToken?: string }> {
+  async fetchRawReviews(
+    clinicId: number,
+    locationId: string,
+    pageToken?: string,
+  ): Promise<{ reviews: any[]; nextPageToken?: string }> {
     try {
       const accessToken = await this.oauthService.getValidAccessToken(clinicId);
-      const location = await this.locationRepo.findOne({ where: { locationId } });
+      const location = await this.locationRepo.findOne({
+        where: { locationId },
+      });
       if (!location) {
         throw new NotFoundException(`Location ${locationId} not found.`);
       }
@@ -121,20 +147,32 @@ export class GetReviewService {
         nextPageToken: res.data?.nextPageToken,
       };
     } catch (error: any) {
-      console.error('fetchRawReviews error:', error.response?.data ?? error.message);
-      throw new InternalServerErrorException('Failed to fetch reviews from Google.');
+      console.error(
+        'fetchRawReviews error:',
+        error.response?.data ?? error.message,
+      );
+      throw new InternalServerErrorException(
+        'Failed to fetch reviews from Google.',
+      );
     }
   }
 
   // ─── Step 4: Fetch & persist reviews (with pagination) ────────────────────
-  async syncReviews(clinicId: number, locationId: string): Promise<{ synced: number }> {
+  async syncReviews(
+    clinicId: number,
+    locationId: string,
+  ): Promise<{ synced: number }> {
     try {
       const accessToken = await this.oauthService.getValidAccessToken(clinicId);
 
       // Look up accountId from stored location
-      const location = await this.locationRepo.findOne({ where: { locationId } });
+      const location = await this.locationRepo.findOne({
+        where: { locationId },
+      });
       if (!location) {
-        throw new NotFoundException(`Location ${locationId} not found. Run /reviews/locations first.`);
+        throw new NotFoundException(
+          `Location ${locationId} not found. Run /reviews/locations first.`,
+        );
       }
 
       const { accountId } = location;
@@ -155,14 +193,21 @@ export class GetReviewService {
         pageToken = res.data?.nextPageToken;
 
         for (const r of reviews) {
-          let record = await this.reviewRepo.findOne({ where: { reviewId: r.reviewId } });
+          let record = await this.reviewRepo.findOne({
+            where: { reviewId: r.reviewId },
+          });
           if (!record) {
-            record = this.reviewRepo.create({ reviewId: r.reviewId, locationId });
+            record = this.reviewRepo.create({
+              reviewId: r.reviewId,
+              locationId,
+            });
           }
           record.reviewerName = r.reviewer?.displayName ?? 'Anonymous';
           record.starRating = r.starRating ?? null;
           record.comment = r.comment ?? null;
-          record.reviewCreateTime = r.createTime ? new Date(r.createTime) : null;
+          record.reviewCreateTime = r.createTime
+            ? new Date(r.createTime)
+            : null;
 
           await this.reviewRepo.save(record);
           totalSynced++;
@@ -171,20 +216,38 @@ export class GetReviewService {
 
       return { synced: totalSynced };
     } catch (error: any) {
-      console.error('syncReviews error:', error.response?.data ?? error.message);
-      throw new InternalServerErrorException('Failed to sync reviews from Google.');
+      console.error(
+        'syncReviews error:',
+        error.response?.data ?? error.message,
+      );
+      throw new InternalServerErrorException(
+        'Failed to sync reviews from Google.',
+      );
     }
   }
 
   // Get saved reviews + computed breakdown from DB
   async getReviews(locationId: string): Promise<{
     reviews: GoogleReview[];
-    summary: { total: number; average: number; breakdown: Record<string, number> };
+    summary: {
+      total: number;
+      average: number;
+      breakdown: Record<string, number>;
+    };
   }> {
-    const reviews = await this.reviewRepo.find({ where: { locationId }, order: { reviewCreateTime: 'DESC' } });
+    const reviews = await this.reviewRepo.find({
+      where: { locationId },
+      order: { reviewCreateTime: 'DESC' },
+    });
 
     const total = reviews.length;
-    const breakdown: Record<string, number> = { ONE: 0, TWO: 0, THREE: 0, FOUR: 0, FIVE: 0 };
+    const breakdown: Record<string, number> = {
+      ONE: 0,
+      TWO: 0,
+      THREE: 0,
+      FOUR: 0,
+      FIVE: 0,
+    };
     let sum = 0;
 
     for (const r of reviews) {
@@ -212,12 +275,18 @@ export class GetReviewService {
       const reviewId = parts[5];
 
       // Find the clinicId by searching for the locationId in our DB
-      const location = await this.locationRepo.findOne({ where: { locationId } });
+      const location = await this.locationRepo.findOne({
+        where: { locationId },
+      });
       if (!location) {
-        throw new NotFoundException(`Location ${locationId} not found in DB for review ${reviewId}`);
+        throw new NotFoundException(
+          `Location ${locationId} not found in DB for review ${reviewId}`,
+        );
       }
 
-      const accessToken = await this.oauthService.getValidAccessToken(location.clinicId);
+      const accessToken = await this.oauthService.getValidAccessToken(
+        location.clinicId,
+      );
 
       const res = await axios.get(
         `https://mybusiness.googleapis.com/v4/${reviewName}`,
@@ -236,8 +305,13 @@ export class GetReviewService {
 
       return await this.reviewRepo.save(record);
     } catch (error: any) {
-      console.error('syncSingleReview error:', error.response?.data ?? error.message);
-      throw new InternalServerErrorException('Failed to sync single review from Google.');
+      console.error(
+        'syncSingleReview error:',
+        error.response?.data ?? error.message,
+      );
+      throw new InternalServerErrorException(
+        'Failed to sync single review from Google.',
+      );
     }
   }
 }

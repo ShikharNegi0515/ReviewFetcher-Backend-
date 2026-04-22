@@ -14,15 +14,14 @@ export class OAuthController {
       redirect_uri: process.env.GOOGLE_REDIRECT_URI,
       response_type: 'code',
       // We need userinfo.email and userinfo.profile to call the userinfo endpoint
-      scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/business.manage',
+      scope:
+        'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/business.manage',
       access_type: 'offline',
       prompt: 'consent',
       state: clinicId, // state helps optionally pass clinicId through the OAuth flow
     });
 
-    res.redirect(
-      `https://accounts.google.com/o/oauth2/v2/auth?${query}`,
-    );
+    res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${query}`);
   }
 
   @Get('google/callback')

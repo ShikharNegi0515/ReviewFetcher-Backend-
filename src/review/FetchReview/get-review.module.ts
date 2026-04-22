@@ -9,7 +9,7 @@ import { GoogleReview } from '../Entity/google-review.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([GoogleBusinessLocation, GoogleReview]),
-    OAuthModule,  
+    OAuthModule,
   ],
   controllers: [GetReviewController],
   providers: [GetReviewService],

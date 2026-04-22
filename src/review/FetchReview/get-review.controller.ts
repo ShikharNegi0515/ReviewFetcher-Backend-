@@ -3,7 +3,6 @@ import { GetReviewService } from './get-review.service';
 
 @Controller('reviews')
 export class GetReviewController {
-
   constructor(private readonly getReviewService: GetReviewService) {}
 
   // POST /reviews/locations?clinicId=1
