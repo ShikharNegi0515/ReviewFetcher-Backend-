@@ -20,7 +20,7 @@ export class NewReviewfetcherService {
       const projectId =
         this.configService.get<string>('GCP_PROJECT_ID') ||
         'weather-app-477112';
-      const topicId = 'google-review-notifications'; // Target topic for Google to publish to
+      const topicId = 'review.google.events'; // Updated to match your configuration
       const pubsubTopic = `projects/${projectId}/topics/${topicId}`;
 
       // This endpoint tells Google to start sending NEW_REVIEW events to your Pub/Sub topic
@@ -29,6 +29,7 @@ export class NewReviewfetcherService {
       const response = await axios.patch(
         url,
         {
+          name: `accounts/${accountId}/notificationSetting`, // Added this field
           pubsubTopic: pubsubTopic,
           notificationTypes: ['NEW_REVIEW', 'UPDATED_REVIEW'],
         },
@@ -42,10 +43,13 @@ export class NewReviewfetcherService {
       );
       return { success: true, data: response.data };
     } catch (error: any) {
+      // Better error logging to see exactly what Google says
+      const details = error.response?.data?.error?.details || [];
       console.error(
         '[NewReviewfetcherService] Setup error:',
-        error.response?.data || error.message,
+        JSON.stringify(error.response?.data || error.message, null, 2),
       );
+
       throw new InternalServerErrorException(
         error.response?.data?.error?.message ||
           'Failed to setup Google Business notifications',
