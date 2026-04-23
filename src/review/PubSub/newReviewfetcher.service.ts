@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import axios from 'axios';
 import { OAuthService } from '../OAuth/OAuth.service';
 import { GetReviewService } from '../FetchReview/get-review.service';
@@ -6,6 +10,8 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class NewReviewfetcherService {
+  private readonly logger = new Logger(NewReviewfetcherService.name);
+
   constructor(
     private readonly oauthService: OAuthService,
     private readonly getReviewService: GetReviewService,
@@ -17,42 +23,62 @@ export class NewReviewfetcherService {
       const accessToken = await this.oauthService.getValidAccessToken(clinicId);
       const accountId = await this.getReviewService.getAccountId(accessToken);
 
+      // 1. Get Project ID and Topic Name from Config or Defaults
       const projectId =
         this.configService.get<string>('GCP_PROJECT_ID') ||
         'weather-app-477112';
-      const topicId = 'review.google.events'; // Updated to match your configuration
+      const topicId =
+        this.configService.get<string>('GCP_PUBSUB_TOPIC') ||
+        'business-reviews-topic';
+
       const pubsubTopic = `projects/${projectId}/topics/${topicId}`;
 
-      // This endpoint tells Google to start sending NEW_REVIEW events to your Pub/Sub topic
-      const url = `https://mybusinessnotifications.googleapis.com/v1/accounts/${accountId}/notificationSetting?updateMask=notificationTypes,pubsubTopic`;
+      // 2. Updated URL with the correct updateMask for the v1 Notifications API
+      // Note: mybusinessnotifications.googleapis.com is the correct modern endpoint
+      const url = `https://mybusinessnotifications.googleapis.com/v1/accounts/${accountId}/notificationSetting?updateMask=notificationSetting`;
 
       const response = await axios.patch(
         url,
         {
-          name: `accounts/${accountId}/notificationSetting`, // Added this field
+          name: `accounts/${accountId}/notificationSetting`,
           pubsubTopic: pubsubTopic,
           notificationTypes: ['NEW_REVIEW', 'UPDATED_REVIEW'],
         },
         {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
         },
       );
 
-      console.log(
-        `[NewReviewfetcherService] Notifications enabled for account ${accountId} to topic ${topicId}`,
-      );
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      // Better error logging to see exactly what Google says
-      const details = error.response?.data?.error?.details || [];
-      console.error(
-        '[NewReviewfetcherService] Setup error:',
-        JSON.stringify(error.response?.data || error.message, null, 2),
+      this.logger.log(
+        `✅ Notifications enabled for account ${accountId}. Topic: ${pubsubTopic}`,
       );
 
+      return {
+        success: true,
+        message: 'Google Pub/Sub notifications linked successfully',
+        data: response.data,
+      };
+    } catch (error: any) {
+      // Extract Google-specific error messages
+      const googleError = error.response?.data?.error;
+
+      this.logger.error(
+        `❌ Setup error for Clinic ${clinicId}: ${googleError?.message || error.message}`,
+        googleError?.details ? JSON.stringify(googleError.details) : '',
+      );
+
+      // Handle specific "Permission Denied" errors
+      if (error.response?.status === 403) {
+        throw new InternalServerErrorException(
+          "Google API Permission Denied. Ensure My Business Notifications API is enabled in your friend's console.",
+        );
+      }
+
       throw new InternalServerErrorException(
-        error.response?.data?.error?.message ||
-          'Failed to setup Google Business notifications',
+        googleError?.message || 'Failed to setup Google Business notifications',
       );
     }
   }
