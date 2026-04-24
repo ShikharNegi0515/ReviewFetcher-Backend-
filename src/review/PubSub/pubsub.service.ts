@@ -22,7 +22,16 @@ export class PubSubService implements OnModuleInit {
 
     const creds =
       this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIALS') ||
-      this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIAL');
+      this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIAL') ||
+      process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+    // VERY IMPORTANT: Google's underlying library automatically looks at process.env.GOOGLE_APPLICATION_CREDENTIALS.
+    // If it is malformed (e.g. contains raw JSON instead of a file path, or has mangled newlines), it will CRASH
+    // from deep within the library, completely bypassing our safe options.
+    // By deleting it here, we force Google to ONLY use the cleaned options we explicitly pass below!
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    }
 
     let trimmedCreds = creds ? creds.trim() : '';
     // Fix accidental '=' at the start (common copy-paste error in Dashboards)
