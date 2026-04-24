@@ -24,14 +24,34 @@ export class PubSubService implements OnModuleInit {
       this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIALS') ||
       this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIAL');
 
-    this.pubSubClient = new PubSub({
+    let trimmedCreds = creds ? creds.trim() : '';
+    // Fix accidental '=' at the start (common copy-paste error in Dashboards)
+    if (trimmedCreds.startsWith('=')) {
+      trimmedCreds = trimmedCreds.substring(1).trim();
+    }
+
+    const options: any = {
       projectId: this.configService.get<string>('GCP_PROJECT_ID'),
-      // If GOOGLE_APPLICATION_CREDENTIALS is a JSON string, parse it.
-      // If it's a file path, pass it as keyFilename.
-      credentials:
-        creds && creds.trim().startsWith('{') ? JSON.parse(creds) : undefined,
-      keyFilename: creds && !creds.trim().startsWith('{') ? creds : undefined,
-    });
+    };
+
+    if (trimmedCreds) {
+      if (trimmedCreds.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(trimmedCreds);
+          // Fix potentially mangled newlines in private_key when passed via raw env vars
+          if (parsed.private_key) {
+            parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+          }
+          options.credentials = parsed;
+        } catch (e) {
+          this.logger.error('Failed to parse GCP credentials JSON.');
+        }
+      } else {
+        options.keyFilename = trimmedCreds;
+      }
+    }
+
+    this.pubSubClient = new PubSub(options);
   }
 
   async onModuleInit() {
