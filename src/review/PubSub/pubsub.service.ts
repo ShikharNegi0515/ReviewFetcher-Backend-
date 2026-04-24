@@ -12,18 +12,25 @@ export class PubSubService implements OnModuleInit {
   private pubSubClient: PubSub;
   private readonly logger = new Logger(PubSubService.name);
   // It is better to pull the topic name from Config
-  private readonly internalTopicName =
-    this.configService.get<string>('INTERNAL_TOPIC_NAME') ||
-    'review.internal.events';
+  private readonly internalTopicName: string;
   private internalTopic: Topic;
 
   constructor(private readonly configService: ConfigService) {
+    this.internalTopicName =
+      this.configService.get<string>('INTERNAL_TOPIC_NAME') ||
+      'review.internal.events';
+
+    const creds =
+      this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIALS') ||
+      this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIAL');
+
     this.pubSubClient = new PubSub({
       projectId: this.configService.get<string>('GCP_PROJECT_ID'),
-      // If you have a service account JSON for your project, add it to Render env vars
-      credentials: this.configService.get('GCP_CREDENTIALS')
-        ? JSON.parse(this.configService.get('GCP_CREDENTIALS'))
-        : undefined,
+      // If GOOGLE_APPLICATION_CREDENTIALS is a JSON string, parse it.
+      // If it's a file path, pass it as keyFilename.
+      credentials:
+        creds && creds.trim().startsWith('{') ? JSON.parse(creds) : undefined,
+      keyFilename: creds && !creds.trim().startsWith('{') ? creds : undefined,
     });
   }
 
@@ -95,12 +102,23 @@ export class PubSubService implements OnModuleInit {
 
       subscription.on('message', async (message) => {
         try {
-          const parsedData = JSON.parse(message.data.toString());
+          const rawData = message.data.toString();
+          let parsedData;
+          try {
+            parsedData = JSON.parse(rawData);
+          } catch (e) {
+            this.logger.error(
+              `Malformed JSON in message ${message.id}: ${rawData}`,
+            );
+            message.ack(); // Drop malformed message to avoid infinite retry
+            return;
+          }
+
           await messageHandler(parsedData);
           message.ack(); // Acknowledge success
         } catch (error: any) {
           this.logger.error(
-            `Handler error for ${subscriptionName}: ${error.message}`,
+            `Handler error for ${subscriptionName} (Msg: ${message.id}): ${error.message}`,
           );
 
           // If it's a temporary error (like DB busy), nack to retry

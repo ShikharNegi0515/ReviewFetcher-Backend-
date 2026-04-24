@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { PubSubService } from './pubsub.service';
 import { NewReviewfetcherService } from './newReviewfetcher.service';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('reviews')
 export class GoogleWebhookController {
@@ -17,11 +18,19 @@ export class GoogleWebhookController {
   constructor(
     private readonly pubSubService: PubSubService,
     private readonly newReviewfetcherService: NewReviewfetcherService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('webhook/google-review')
-  @HttpCode(HttpStatus.NO_CONTENT) // Returns 204: Best practice for webhooks
-  async handle(@Body() body: any) {
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async handle(@Body() body: any, @Query('secret') secret: string) {
+    const expectedSecret = this.configService.get<string>('WEBHOOK_SECRET');
+
+    if (expectedSecret && secret !== expectedSecret) {
+      this.logger.warn('Unauthorized webhook attempt');
+      return; // Return 204 still, to avoid Google retry loops
+    }
+
     this.logger.log('GOOGLE EVENT RECEIVED');
 
     try {

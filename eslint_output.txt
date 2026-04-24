@@ -1,0 +1,18 @@
+
+> review-module@0.0.1 lint
+> eslint "{src,apps,libs,test}/**/*.ts" --fix
+
+
+Oops! Something went wrong! :(
+
+ESLint: 10.2.1
+
+TypeError: util.styleText is not a function
+    at util.styleText.validateStream (/home/shikhar/Desktop/Project/Fetch review via MyBussinessApi/backend/node_modules/eslint/lib/cli-engine/formatters/stylish.js:22:9)
+    at /home/shikhar/Desktop/Project/Fetch review via MyBussinessApi/backend/node_modules/eslint/lib/cli-engine/formatters/stylish.js:67:16
+    at Array.forEach (<anonymous>)
+    at module.exports (/home/shikhar/Desktop/Project/Fetch review via MyBussinessApi/backend/node_modules/eslint/lib/cli-engine/formatters/stylish.js:55:10)
+    at Object.format (/home/shikhar/Desktop/Project/Fetch review via MyBussinessApi/backend/node_modules/eslint/lib/eslint/eslint.js:1284:12)
+    at printResults (/home/shikhar/Desktop/Project/Fetch review via MyBussinessApi/backend/node_modules/eslint/lib/cli.js:118:33)
+    at async Object.execute (/home/shikhar/Desktop/Project/Fetch review via MyBussinessApi/backend/node_modules/eslint/lib/cli.js:478:4)
+    at async main (/home/shikhar/Desktop/Project/Fetch review via MyBussinessApi/backend/node_modules/eslint/bin/eslint.js:175:19)
