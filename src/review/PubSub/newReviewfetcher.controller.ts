@@ -31,38 +31,35 @@ export class GoogleWebhookController {
       return; // Return 204 still, to avoid Google retry loops
     }
 
-    this.logger.log('GOOGLE EVENT RECEIVED');
+    this.logger.log('================================================');
+    this.logger.log('🔔 GOOGLE PUB/SUB EVENT RECEIVED');
+    this.logger.log('================================================');
 
     try {
       const encodedData = body.message?.data;
 
       if (!encodedData) {
-        this.logger.warn('Received PubSub message with no data');
-        // We still return success to Google so they don't keep retrying a broken message
+        this.logger.warn('⚠️ Received PubSub message with no data');
         return;
       }
 
       const decodedString = Buffer.from(encodedData, 'base64').toString();
       const data = JSON.parse(decodedString);
 
-      this.logger.log(`Decoded Review Data => ${JSON.stringify(data)}`);
+      this.logger.log(`📥 DATA RECEIVED: ${JSON.stringify(data, null, 2)}`);
 
-      /**
-       * DATA STRUCTURE CHECK:
-       * Google sends: { "reviewName": "...", "locationName": "..." }
-       */
       if (data.reviewName) {
+        this.logger.log(`📝 New/Updated Review detected: ${data.reviewName}`);
         await this.pubSubService.publishInternalEvent({
           type: 'REVIEW_UPDATED',
           ...data,
         });
       }
 
-      return; // Nest sends 204 automatically due to @HttpCode
+      this.logger.log('================================================');
+      return; 
     } catch (error: any) {
-      this.logger.error(`Error in webhook handler: ${error.message}`);
-      // Returning 204 even on error prevents Google from spamming your endpoint
-      // with retries for a message that your code can't parse.
+      this.logger.error(`❌ Error in webhook handler: ${error.message}`);
       return;
     }
   }
