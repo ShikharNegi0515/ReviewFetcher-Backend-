@@ -61,15 +61,19 @@ export class PubSubService implements OnModuleInit {
     }
 
     this.pubSubClient = new PubSub(options);
+    
+    // Initialize the topic reference immediately so it's never undefined
+    this.internalTopic = this.pubSubClient.topic(this.internalTopicName);
   }
 
   async onModuleInit() {
-    // Ensure the internal topic exists before we try to use it
-    this.internalTopic = await this.ensureTopicExists(this.internalTopicName);
-    
-    this.logger.log(
-      `PubSub Service Initialized for topic: ${this.internalTopicName}`,
-    );
+    // Ensure the internal topic exists in the background
+    try {
+      await this.ensureTopicExists(this.internalTopicName);
+      this.logger.log(`✅ PubSub Topic Verified: ${this.internalTopicName}`);
+    } catch (error) {
+      this.logger.warn(`Could not auto-create topic ${this.internalTopicName}. If it doesn't exist, subscriptions will fail.`);
+    }
   }
 
   private async ensureTopicExists(topicName: string): Promise<Topic> {
