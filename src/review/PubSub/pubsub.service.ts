@@ -64,8 +64,9 @@ export class PubSubService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    // We initialize the topic reference
-    this.internalTopic = this.pubSubClient.topic(this.internalTopicName);
+    // Ensure the internal topic exists before we try to use it
+    this.internalTopic = await this.ensureTopicExists(this.internalTopicName);
+    
     this.logger.log(
       `PubSub Service Initialized for topic: ${this.internalTopicName}`,
     );
